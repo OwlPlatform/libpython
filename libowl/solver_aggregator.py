@@ -31,6 +31,7 @@ class SolverAggregator:
   DEVICE_POSITION       = 5
   SERVER_SAMPLE         = 6
   BUFFER_OVERRUN        = 7
+  VER_STRING = "GRAIL solver protocol"
 
   def __init__(self, host, port):
     self.connected = False
@@ -42,16 +43,19 @@ class SolverAggregator:
     self.socket.connect((host, port))
     # Make the solver-aggregator handshake
     handshake = b''
-    ver_string = "GRAIL solver protocol"
     #The handshake is the length of the message, the protocol string, and the version (0).
-    handshake += struct.pack('!L', len(ver_string))
-    handshake += ver_string.encode('utf-8')
+    handshake += struct.pack('!L', len(self.VER_STRING))
+    handshake += self.VER_STRING.encode('utf-8')
     handshake += b'\x00\x00'
     #Receive a handshake and then send one
     #TODO Should verify the bytes of the received message
     remote_handshake = self.socket.recv(len(handshake))
     if len(handshake) != len(remote_handshake):
-        raise RuntimeError("Got bad handshake from aggregator!")
+        raise RuntimeError("Solver-Aggregator handshake error! Verify aggregator port and url.")
+    for i in range(len(handshake)):
+      if handshake[i] != remote_handshake[i]:
+        self.connected = False
+        raise RuntimeError("Solver-Aggregator handshake error! Verify aggregator port and url.")
     # Return the handshake
     self.socket.send(handshake)
     self.connected = True
@@ -120,7 +124,7 @@ class SolverAggregator:
       rest = inbuff[1:]
       txid = struct.unpack('!QQ', rest[0:16])
       rxid = struct.unpack('!QQ', rest[16:32])
-      timestamp, rssi = struct.unpack('!df', rest[32:44])
+      timestamp, rssi = struct.unpack('!Qf', rest[32:44])
       sense_data = rest[44:]
       self.available_packets.append(samples.SensorSample(phy_layer, txid, rxid, timestamp, rssi, sense_data))
 

@@ -2,7 +2,7 @@
 #This file contains functions to put data into and retrieve data from byte
 #arrays when sending messages over a network.
 #
-# Copyright (c) 2013 Bernhard Firner
+# Copyright (c) 2018 Bernhard Firner
 # All rights reserved.
 #
 # This program is free software; you can redistribute it and/or
@@ -22,14 +22,13 @@
 #
 ################################################################################
 
-def packuint128(val)
-  """Function to cover for lack of uint128 value"""
-  #TODO There is no 128 bit type, so pad with zeros for now
-  return struct.pack('!QQ', 0, val)
-
-#Unpack a uint128_t big-endian integer from the buffer
-def unpackuint128(buff)
-  """Function to cover for lack of uint128 value"""
-  #TODO There is no 128 bit type, so discard the upper 4 bytes
-  high, low = buff.unpack('QQ')
-  return low
+def splitURIFromRest(buff):
+  """Take in a buffer with a sized URI in UTF 16 format.
+  Return the string that was at the beginning of the buffer and
+  the rest of the buffer after the string"""
+  #The first four bytes are for the length of the string
+  strlen = struct.unpack('!L', buff[0:4])[0]
+  bstr = buff[4:4+strlen]
+  #Make another container for everything after the string
+  rest = buff[4+strlen:]
+  return bstr.decode('utf-16'), rest
